@@ -1,1 +1,4 @@
-# Review Spot API using MYSQL, containerized with docker and deployed to Google Cloud Platform
+# Review Spot API 
+- MYSQL
+- Docker
+- Google Cloud Platform
