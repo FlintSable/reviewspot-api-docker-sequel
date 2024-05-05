@@ -12,33 +12,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# [START cloud_sql_mysql_sqlalchemy_connect_connector]
 import os
-from google.cloud.sql.connector import Connector, IPTypes
-from google.oauth2 import service_account
-from dotenv import load_dotenv
+
 from google.cloud.sql.connector import Connector, IPTypes
 import pymysql
+# from dotenv import load_dotenv
+
 import sqlalchemy
 
-load_dotenv()
+print("Environment Variables Loaded:")
+print("GOOGLE_APPLICATION_CREDENTIALS:", os.getenv('GOOGLE_APPLICATION_CREDENTIALS'))
+print("INSTANCE_CONNECTION_NAME:", os.getenv('INSTANCE_CONNECTION_NAME'))
+print("DB_NAME:", os.getenv('DB_NAME'))
+print("DB_USER:", os.getenv('DB_USER'))
+print("DB_PASS:", os.getenv('DB_PASS'))
+
+
 
 def connect_with_connector() -> sqlalchemy.engine.base.Engine:
     """
     Initializes a connection pool for a Cloud SQL instance of MySQL.
 
-    Uses the Cloud SQL Python Connector package with a service account key file.
+    Uses the Cloud SQL Python Connector package.
     """
-    credentials = service_account.Credentials.from_service_account_file(
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-    )
+    # Note: Saving credentials in environment variables is convenient, but not
+    # secure - consider a more secure solution such as
+    # Cloud Secret Manager (https://cloud.google.com/secret-manager) to help
+    # keep secrets safe.
+    # dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    # load_dotenv(dotenv_path)
+    instance_connection_name = os.environ["INSTANCE_CONNECTION_NAME"]  # e.g. 'project:region:instance'
+    db_user = os.environ["DB_USER"]  # e.g. 'my-db-user'
+    db_pass = os.environ["DB_PASS"]  # e.g. 'my-db-password'
+    db_name = os.environ["DB_NAME"]  # e.g. 'my-database'
 
-    connector = Connector(credentials=credentials, ip_type=IPTypes.PRIVATE)
+    ip_type = IPTypes.PRIVATE if os.environ.get("PRIVATE_IP") else IPTypes.PUBLIC
+
+    connector = Connector(ip_type)
 
     def getconn() -> pymysql.connections.Connection:
         conn: pymysql.connections.Connection = connector.connect(
-            instance_connection_name=os.environ['INSTANCE_CONNECTION_NAME'],
-            driver="pymysql",
-            db=os.environ['DB_NAME'],
+            instance_connection_name,
+            "pymysql",
+            user=db_user,
+            password=db_pass,
+            db=db_name,
         )
         return conn
 
@@ -63,3 +82,6 @@ def connect_with_connector() -> sqlalchemy.engine.base.Engine:
         # [END_EXCLUDE]
     )
     return pool
+
+
+# [END cloud_sql_mysql_sqlalchemy_connect_connector]
