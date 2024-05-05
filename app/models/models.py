@@ -2,7 +2,9 @@ from sqlalchemy import Column, Integer, String, Text, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
+
 Base = declarative_base()
+
 
 class Business(Base):
     __tablename__ = 'businesses'
@@ -25,11 +27,13 @@ class Business(Base):
         business = cls(**data)
         db.add(business)
         db.commit()
+        # with db.begin():
+        #     db.add(business)
         return business.id
 
     @classmethod
     def get(cls, db, business_id):
-        return db.query(cls).get(business_id)
+        return db.get(cls, business_id)
 
     @classmethod
     def list(cls, db):
@@ -37,7 +41,8 @@ class Business(Base):
 
     @classmethod
     def update(cls, db, business_id, data):
-        business = db.query(cls).get(business_id)
+        # business = db.query(cls).get(business_id)
+        business = db.get(cls, business_id)
         if business:
             for key, value in data.items():
                 setattr(business, key, value)
@@ -46,7 +51,9 @@ class Business(Base):
 
     @classmethod
     def delete(cls, db, business_id):
-        business = db.query(cls).get(business_id)
+        # business = db.query(cls).get(business_id)
+        business = db.get(cls, business_id)
+
         if business:
             db.delete(business)
             db.commit()
