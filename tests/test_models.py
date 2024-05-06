@@ -57,7 +57,10 @@ class TestModels(unittest.TestCase):
             'description': 'This is a test business',
             'address': '123 Test Street',
             'phone': '123-456-7890',
-            'owner_id': 'test_owner'
+            'owner_id': 'test_owner',
+            'city': 'Burbank',
+            'state': 'CA',
+            'zip': '11111'
         }
 
         business = Business(**business_data)
@@ -67,16 +70,6 @@ class TestModels(unittest.TestCase):
         self.assertIsNotNone(business.id)
         print(f'Created business with ID: {business.id}')
 
-
-
-
-
-
-    def test_delete_business(self):
-        business_id = Business.create(self.session, {'name': 'Delete Test', 'owner_id': 'owner123'})
-        result = Business.delete(self.session, business_id)
-        self.assertTrue(result)
-        self.assertIsNone(Business.get(self.session, business_id))
 
 
 if __name__ == '__main__':

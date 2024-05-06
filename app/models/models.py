@@ -15,8 +15,14 @@ class Business(Base):
     address = Column(String(100))
     phone = Column(String(20))
     owner_id = Column(String(50), nullable=False)
+    city = Column(String(50), nullable=False)
+    state = Column(String(2), nullable=False)
+    zip_code = Column(String(5), nullable=False)
 
-    reviews = relationship('Review', back_populates='business')
+    reviews = relationship("Review", back_populates="business", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Business(name={self.name}, city={self.city}, state={self.state}, zip_code={self.zip_code})>"
 
     @classmethod
     def list_by_owner(cls, db, owner_id):
@@ -68,12 +74,15 @@ class Review(Base):
     __tablename__ = 'reviews'
 
     id = Column(Integer, primary_key=True)
-    rating = Column(Float, nullable=False)
-    comment = Column(Text)
-    business_id = Column(Integer, ForeignKey('businesses.id'), nullable=False)
+    stars = Column(Float, nullable=False)
+    review_text = Column(Text)
+    business_id = Column(Integer, ForeignKey('businesses.id', ondelete='CASCADE'), nullable=False)
     user_id = Column(String(50), nullable=False)
 
     business = relationship('Business', back_populates='reviews')
+
+    def __repr__(self):
+        return f"<Review(rating={self.rating}, comment={self.comment[:15]}...)>"
 
     @classmethod
     def create(cls, db, data):
