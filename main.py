@@ -1,5 +1,3 @@
-# main.py
-
 from flask import Flask
 from app.routes.routes import routes_bp
 from app.models.models import Base
@@ -10,8 +8,11 @@ app = Flask(__name__)
 app.register_blueprint(routes_bp)
 
 # Initialize the database
-db = connect_with_connector()
-Base.metadata.create_all(db)
+engine, Session = connect_with_connector()
+# Session = connect_with_connector()
+# engine = create_engine("mysql+pymysql://", creator=Session.kw['bind'].creator)
+Base.metadata.create_all(engine)
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8080, debug=True)

@@ -12,7 +12,7 @@ CREATE TABLE businesses (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     description TEXT,
-    address VARCHAR(100),
+    street_address VARCHAR(100),
     phone VARCHAR(20),
     owner_id VARCHAR(50) NOT NULL,
     city VARCHAR(50) NOT NULL,
