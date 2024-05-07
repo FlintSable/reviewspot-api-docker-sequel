@@ -23,10 +23,10 @@ CREATE TABLE businesses (
 -- Create the 'reviews' table
 CREATE TABLE reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    rating FLOAT NOT NULL CHECK (rating BETWEEN 0 AND 5),
-    comment TEXT,
+    stars FLOAT NOT NULL CHECK (rating BETWEEN 0 AND 5),
+    review_text TEXT,
     business_id INT NOT NULL,
-    user_id VARCHAR(50) NOT NULL,
+    user_id INTEGER NOT NULL,
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
 );
 

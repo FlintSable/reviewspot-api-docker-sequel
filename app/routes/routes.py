@@ -7,6 +7,11 @@ routes_bp = Blueprint('routes', __name__)
 _, Session = connect_with_connector()
 # Session = connect_with_connector()
 
+@app.route('/')
+def index():
+    return "Welcome to the ReviewSpot API using MySQL!"
+
+
 @routes_bp.route('/businesses', methods=['POST'])
 def create_business():
     data = request.get_json()
@@ -111,11 +116,12 @@ def update_business(business_id):
 def delete_business(business_id):
     with Session() as db_session:
         business = Business.get(db_session, business_id)
-        if business:
-            Business.delete(db_session, business_id)
-            return '', 204
-        else:
+        if not business:
             return jsonify({'Error': 'No business with this business_id exists'}), 404
+        Review.delete_by_business_id(db_session, business_id)
+        db_session.delete(business)
+        db_session.commit()
+        return '', 204
 
 @routes_bp.route('/owners/<int:owner_id>/businesses', methods=['GET'])
 def get_businesses_by_owner(owner_id):
@@ -147,47 +153,110 @@ def create_review():
     required_fields = ['user_id', 'business_id', 'stars']
     if not all(field in data for field in required_fields):
         return jsonify({'Error': 'The request body is missing at least one of the required attributes'}), 400
+    
     with Session() as db_session:
         if not Business.exists(db_session, data['business_id']):
             return jsonify({'Error': 'No business with this business_id exists'}), 404
+        
         if Review.exists_by_user_business(db_session, data['user_id'], data['business_id']):
             return jsonify({'Error': 'You have already submitted a review for this business. You can update your previous review, or delete it and submit a new review'}), 409
-        review_id = Review.create(db_session, data)
+        
+        review_data = {
+            'user_id': data['user_id'],
+            'business_id': data['business_id'],
+            'stars': data['stars'],
+            'review_text': data.get('review_text', '')
+        }
+        review_id = Review.create(db_session, review_data)
         review = Review.get(db_session, review_id)
-    response = review.__dict__
-    response['self'] = f"{request.base_url}/{review_id}"
-    response['business'] = f"{request.url_root}businesses/{review.business_id}"
-    return jsonify(response), 201
+        
+        response = {
+            'id': review.id,
+            'user_id': review.user_id,
+            'business_id': review.business_id,
+            'stars': review.stars,
+            'review_text': review.review_text,
+            'self': url_for('routes.get_review', review_id=review.id, _external=True),
+            'business': url_for('routes.get_business', business_id=review.business_id, _external=True)
+        }
+        
+        return jsonify(response), 201
 
 @routes_bp.route('/reviews/<int:review_id>', methods=['GET'])
 def get_review(review_id):
     with Session() as db_session:
         review = Review.get(db_session, review_id)
-    if review:
-        response = review.__dict__
-        response['self'] = f"{request.base_url}"
-        response['business'] = f"{request.url_root}businesses/{review.business_id}"
+        if not review or not review.business:
+            return jsonify({'Error': 'No review with this review_id exists'}), 404
+        
+        response = {
+            'id': review.id,
+            'user_id': review.user_id,
+            'business_id': review.business_id,
+            'stars': review.stars,
+            'review_text': review.review_text or '',
+            'self': url_for('routes.get_review', review_id=review.id, _external=True),
+            'business': url_for('routes.get_business', business_id=review.business_id, _external=True)
+        }
+        
         return jsonify(response), 200
-    return jsonify({'error': 'Review not found'}), 404
 
 @routes_bp.route('/reviews/<int:review_id>', methods=['PUT'])
 def update_review(review_id):
     data = request.get_json()
+    if 'stars' not in data:
+        return jsonify({'Error': 'The request body is missing at least one of the required attributes'}), 400
+    
     with Session() as db_session:
-        review = Review.update(db_session, review_id, data)
-    if review:
-        return jsonify(review.__dict__), 200
-    return jsonify({'error': 'Review not found'}), 404
+        review = Review.get(db_session, review_id)
+        if not review:
+            return jsonify({'Error': 'No review with this review_id exists'}), 404
+        
+        review.stars = data['stars']
+        review.review_text = data.get('review_text', review.review_text)
+        db_session.commit()
+        
+        response = {
+            'id': review.id,
+            'user_id': review.user_id,
+            'business_id': review.business_id,
+            'stars': review.stars,
+            'review_text': review.review_text,
+            'self': url_for('routes.get_review', review_id=review.id, _external=True),
+            'business': url_for('routes.get_business', business_id=review.business_id, _external=True)
+        }
+        
+        return jsonify(response), 200
 
 @routes_bp.route('/reviews/<int:review_id>', methods=['DELETE'])
 def delete_review(review_id):
     with Session() as db_session:
-        if Review.delete(db_session, review_id):
-            return '', 204
-    return jsonify({'error': 'Review not found'}), 404
+        review = Review.get(db_session, review_id)
+        if not review:
+            return jsonify({'Error': 'No review with this review_id exists'}), 404
+        
+        db_session.delete(review)
+        db_session.commit()
+        
+        return '', 204
 
-@routes_bp.route('/reviews/user/<string:user_id>', methods=['GET'])
+@routes_bp.route('/users/<int:user_id>/reviews', methods=['GET'])
 def get_reviews_by_user(user_id):
     with Session() as db_session:
         reviews = Review.list_by_user(db_session, user_id)
-    return jsonify([review.__dict__ for review in reviews]), 200
+        if not reviews:
+            return jsonify({'Error': 'No reviews found for this user'}), 404
+        response = []
+        for review in reviews:
+            review_data = {
+                'id': review.id,
+                'user_id': review.user_id,
+                'business_id': review.business_id,
+                'stars': review.stars,
+                'review_text': review.review_text or '',
+                'self': url_for('routes.get_review', review_id=review.id, _external=True),
+                'business': url_for('routes.get_business', business_id=review.business_id, _external=True)
+            }
+            response.append(review_data)
+    
+        return jsonify(response), 200
