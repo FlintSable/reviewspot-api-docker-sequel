@@ -67,10 +67,10 @@ class Review(Base):
     __tablename__ = 'reviews'
 
     id = Column(Integer, primary_key=True)
-    rating = Column(Float, nullable=False)
-    comment = Column(Text)
+    stars = Column(Float, nullable=False)
+    review_text = Column(Text)
     business_id = Column(Integer, ForeignKey('businesses.id'), nullable=False)
-    user_id = Column(String(50), nullable=False)
+    user_id = Column(Integer, nullable=False)
 
     business = relationship('Business', back_populates='reviews')
 
@@ -116,6 +116,6 @@ class Review(Base):
         return False
 
     @classmethod
-    def delete_by_business(cls, db_session, business_id):
+    def delete_by_business_id(cls, db_session, business_id):
         db_session.query(cls).filter_by(business_id=business_id).delete()
         db_session.commit()
